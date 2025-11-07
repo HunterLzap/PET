@@ -18,6 +18,14 @@
             登录
           </el-button>
         </el-form-item>
+        
+        <!-- 注册链接 -->
+        <el-form-item style="text-align: center; margin-bottom: 0;">
+          <span style="color: #909399; font-size: 14px;">还没有账号？</span>
+          <el-link type="primary" @click="router.push('/register')" style="margin-left: 5px;">
+            立即注册
+          </el-link>
+        </el-form-item>
       </el-form>
     </el-card>
   </div>
@@ -71,6 +79,7 @@ const handleLogin = async () => {
         router.push('/')
       } catch (error) {
         console.error('Login error:', error)
+        ElMessage.error('登录失败，请检查用户名和密码')
       } finally {
         loading.value = false
       }
@@ -102,4 +111,3 @@ const handleLogin = async () => {
   color: #409eff;
 }
 </style>
-

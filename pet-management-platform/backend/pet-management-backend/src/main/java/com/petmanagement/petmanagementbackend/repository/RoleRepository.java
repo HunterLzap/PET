@@ -10,6 +10,13 @@ import com.petmanagement.petmanagementbackend.models.Role;
 
 @Repository
 public interface RoleRepository extends JpaRepository<Role, Integer> {
-  Optional<Role> findByName(ERole name);
+    /**
+     * 根据角色名称查找角色
+     */
+    Optional<Role> findByName(ERole name);
+    
+    /**
+     * 检查角色是否存在（新增，用于数据初始化）
+     */
+    Boolean existsByName(ERole name);
 }
-

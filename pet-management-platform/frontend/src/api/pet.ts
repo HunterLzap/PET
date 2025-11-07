@@ -1,40 +1,48 @@
 import request from '@/utils/request'
-import type { Pet } from '@/types'
+import type { Pet, AddPetRequest } from '@/types'
 
-export function getPets() {
+// 获取我的宠物列表
+export function getMyPets(): Promise<Pet[]> {
   return request({
-    url: '/pets',
+    url: '/api/user/pets',
     method: 'get'
-  }) as Promise<Pet[]>
+  })
 }
 
-export function getPetById(id: number) {
+// 获取宠物详情
+export function getPetDetail(id: number): Promise<Pet> {
   return request({
-    url: `/pets/${id}`,
+    url: `/api/user/pets/${id}`,
     method: 'get'
-  }) as Promise<Pet>
+  })
 }
 
-export function createPet(data: Pet) {
+// 添加宠物
+export function addPet(data: AddPetRequest): Promise<Pet> {
   return request({
-    url: '/pets',
+    url: '/api/user/pets',
     method: 'post',
     data
-  }) as Promise<Pet>
+  })
 }
 
-export function updatePet(id: number, data: Pet) {
+// 更新宠物
+export function updatePet(id: number, data: Partial<AddPetRequest>): Promise<Pet> {
   return request({
-    url: `/pets/${id}`,
+    url: `/api/user/pets/${id}`,
     method: 'put',
     data
-  }) as Promise<Pet>
+  })
 }
 
-export function deletePet(id: number) {
+// 删除宠物
+export function deletePet(id: number): Promise<void> {
   return request({
-    url: `/pets/${id}`,
+    url: `/api/user/pets/${id}`,
     method: 'delete'
   })
 }
 
+// 兼容旧接口名（避免其他地方报错）
+export const getPets = getMyPets
+export const createPet = addPet

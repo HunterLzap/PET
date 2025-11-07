@@ -14,22 +14,27 @@
       <el-table :data="tableData" v-loading="loading" stripe border>
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="name" label="宠物名称" width="120" />
-        <el-table-column prop="species" label="物种" width="100" />
-        <el-table-column prop="gender" label="性别" width="80">
+        <el-table-column prop="speciesName" label="种类" width="100" />
+        <el-table-column prop="breedName" label="品种" width="120" />
+        <el-table-column prop="genderName" label="性别" width="100">
           <template #default="{ row }">
-            <el-tag v-if="row.gender === 'MALE'" type="primary">雄性</el-tag>
-            <el-tag v-else-if="row.gender === 'FEMALE'" type="danger">雌性</el-tag>
-            <el-tag v-else type="info">未知</el-tag>
+            <el-tag v-if="row.genderCode === 'male'" type="primary">{{ row.genderName }}</el-tag>
+            <el-tag v-else-if="row.genderCode === 'female'" type="danger">{{ row.genderName }}</el-tag>
+            <el-tag v-else type="info">{{ row.genderName }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="birthday" label="生日" width="120" />
+        <el-table-column prop="birthDate" label="生日" width="120" />
+        <el-table-column label="年龄" width="100">
+          <template #default="{ row }">
+            {{ row.ageInMonths ? Math.floor(row.ageInMonths / 12) + '岁' + (row.ageInMonths % 12) + '个月' : '-' }}
+          </template>
+        </el-table-column>
         <el-table-column prop="weight" label="体重(kg)" width="100" />
         <el-table-column prop="color" label="颜色" width="100" />
         <el-table-column prop="description" label="描述" show-overflow-tooltip />
-        <el-table-column label="操作" width="250" fixed="right">
+        <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
             <el-button size="small" @click="handleEdit(row)">编辑</el-button>
-            <el-button size="small" type="warning" @click="handleBindNfc(row)">绑定NFC</el-button>
             <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
@@ -47,59 +52,68 @@
         <el-form-item label="宠物名称" prop="name">
           <el-input v-model="form.name" placeholder="请输入宠物名称" />
         </el-form-item>
-        <el-form-item label="物种" prop="species">
-          <el-input v-model="form.species" placeholder="请输入物种，如猫、狗" />
-        </el-form-item>
-        <el-form-item label="性别" prop="gender">
-          <el-select v-model="form.gender" placeholder="请选择性别">
-            <el-option label="雄性" value="MALE" />
-            <el-option label="雌性" value="FEMALE" />
-            <el-option label="未知" value="UNKNOWN" />
+        
+        <el-form-item label="宠物种类" prop="speciesCode">
+          <el-select v-model="form.speciesCode" placeholder="请选择宠物种类" @change="handleSpeciesChange">
+            <el-option
+              v-for="item in speciesList"
+              :key="item.valueCode"
+              :label="item.valueName"
+              :value="item.valueCode"
+            />
           </el-select>
         </el-form-item>
-        <el-form-item label="生日" prop="birthday">
+        
+        <el-form-item label="宠物品种" prop="breedCode">
+          <el-select v-model="form.breedCode" placeholder="请先选择宠物种类" :disabled="!form.speciesCode">
+            <el-option
+              v-for="item in breedList"
+              :key="item.valueCode"
+              :label="item.valueName"
+              :value="item.valueCode"
+            >
+              <span>{{ item.valueName }}</span>
+              <span style="color: #8492a6; font-size: 12px; margin-left: 10px;">
+                {{ getBreedOrigin(item) }}
+              </span>
+            </el-option>
+          </el-select>
+        </el-form-item>
+        
+        <el-form-item label="性别" prop="genderCode">
+          <el-radio-group v-model="form.genderCode">
+            <el-radio v-for="item in genderList" :key="item.valueCode" :label="item.valueCode">
+              {{ item.valueName }}
+            </el-radio>
+          </el-radio-group>
+        </el-form-item>
+        
+        <el-form-item label="生日" prop="birthDate">
           <el-date-picker
-            v-model="form.birthday"
+            v-model="form.birthDate"
             type="date"
             placeholder="请选择生日"
             format="YYYY-MM-DD"
             value-format="YYYY-MM-DD"
           />
         </el-form-item>
+        
         <el-form-item label="体重(kg)" prop="weight">
           <el-input-number v-model="form.weight" :min="0" :precision="2" />
         </el-form-item>
+        
         <el-form-item label="颜色" prop="color">
           <el-input v-model="form.color" placeholder="请输入颜色" />
         </el-form-item>
+        
         <el-form-item label="描述" prop="description">
-          <el-input
-            v-model="form.description"
-            type="textarea"
-            :rows="3"
-            placeholder="请输入描述"
-          />
+          <el-input v-model="form.description" type="textarea" :rows="3" placeholder="请输入描述" />
         </el-form-item>
       </el-form>
+      
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
         <el-button type="primary" @click="handleSubmit" :loading="submitLoading">确定</el-button>
-      </template>
-    </el-dialog>
-
-    <!-- NFC绑定对话框 -->
-    <el-dialog v-model="nfcDialogVisible" title="绑定NFC吊牌" width="500px">
-      <el-form :model="nfcForm" label-width="120px">
-        <el-form-item label="宠物名称">
-          <el-input v-model="currentPet.name" disabled />
-        </el-form-item>
-        <el-form-item label="NFC Tag UID">
-          <el-input v-model="nfcForm.tagUid" placeholder="请输入或扫描NFC Tag UID" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="nfcDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleNfcBind" :loading="nfcBindLoading">绑定</el-button>
       </template>
     </el-dialog>
   </div>
@@ -108,50 +122,78 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Plus } from '@element-plus/icons-vue'
 import type { FormInstance, FormRules } from 'element-plus'
-import { getPets, createPet, updatePet, deletePet } from '@/api/pet'
-import { bindNfcTag } from '@/api/nfc'
-import type { Pet } from '@/types'
-import { useAuthStore } from '@/stores/auth'
+import { getMyPets, addPet, updatePet, deletePet } from '@/api/pet'
+import { getDictValues, getDictValuesBySpecies } from '@/api/baseDict'
+import type { Pet, AddPetRequest, DictValue } from '@/types'
 
-const authStore = useAuthStore()
 const loading = ref(false)
 const tableData = ref<Pet[]>([])
 const dialogVisible = ref(false)
 const dialogTitle = ref('')
 const formRef = ref<FormInstance>()
 const submitLoading = ref(false)
-const nfcDialogVisible = ref(false)
-const nfcBindLoading = ref(false)
-const currentPet = ref<Pet>({} as Pet)
+const speciesList = ref<DictValue[]>([])
+const breedList = ref<DictValue[]>([])
+const genderList = ref<DictValue[]>([])
 
-const form = reactive<Pet>({
-  ownerId: authStore.user?.id || 0,
+const form = reactive<AddPetRequest>({
   name: '',
-  species: '',
-  gender: 'UNKNOWN',
-  birthday: '',
+  speciesCode: '',
+  breedCode: '',
+  genderCode: '',
+  birthDate: '',
   weight: 0,
   color: '',
   description: ''
 })
 
-const nfcForm = reactive({
-  tagUid: ''
-})
+const editingPetId = ref<number | undefined>()
 
 const rules = reactive<FormRules>({
   name: [{ required: true, message: '请输入宠物名称', trigger: 'blur' }],
-  species: [{ required: true, message: '请输入物种', trigger: 'blur' }],
-  gender: [{ required: true, message: '请选择性别', trigger: 'change' }]
+  speciesCode: [{ required: true, message: '请选择宠物种类', trigger: 'change' }],
+  breedCode: [{ required: true, message: '请选择宠物品种', trigger: 'change' }],
+  genderCode: [{ required: true, message: '请选择性别', trigger: 'change' }]
 })
+
+const getBreedOrigin = (item: DictValue) => {
+  if (!item.extraData) return ''
+  try {
+    const data = JSON.parse(item.extraData)
+    return data.origin || ''
+  } catch {
+    return ''
+  }
+}
+
+const loadBaseData = async () => {
+  try {
+    speciesList.value = await getDictValues('pet_species') as DictValue[]
+    genderList.value = await getDictValues('pet_gender') as DictValue[]
+  } catch (error) {
+    ElMessage.error('加载基础数据失败')
+  }
+}
+
+const handleSpeciesChange = async (speciesCode: string) => {
+  form.breedCode = ''
+  breedList.value = []
+  if (!speciesCode) return
+  try {
+    breedList.value = await getDictValuesBySpecies('pet_breed', speciesCode) as DictValue[]
+  } catch (error) {
+    ElMessage.error('加载品种数据失败')
+  }
+}
 
 const fetchData = async () => {
   loading.value = true
   try {
-    tableData.value = await getPets()
+    tableData.value = await getMyPets()
   } catch (error) {
-    console.error('Fetch pets error:', error)
+    // 错误已由拦截器处理
   } finally {
     loading.value = false
   }
@@ -163,9 +205,22 @@ const handleAdd = () => {
   dialogVisible.value = true
 }
 
-const handleEdit = (row: Pet) => {
+const handleEdit = async (row: Pet) => {
   dialogTitle.value = '编辑宠物'
-  Object.assign(form, row)
+  editingPetId.value = row.id
+  if (row.speciesCode) {
+    form.speciesCode = row.speciesCode
+    await handleSpeciesChange(row.speciesCode)
+  }
+  Object.assign(form, {
+    name: row.name,
+    breedCode: row.breedCode,
+    genderCode: row.genderCode,
+    birthDate: row.birthDate || '',
+    weight: row.weight || 0,
+    color: row.color || '',
+    description: row.description || ''
+  })
   dialogVisible.value = true
 }
 
@@ -180,52 +235,28 @@ const handleDelete = (row: Pet) => {
       ElMessage.success('删除成功')
       fetchData()
     } catch (error) {
-      console.error('Delete pet error:', error)
+      // 错误已由拦截器处理
     }
   }).catch(() => {})
 }
 
-const handleBindNfc = (row: Pet) => {
-  currentPet.value = row
-  nfcForm.tagUid = ''
-  nfcDialogVisible.value = true
-}
-
-const handleNfcBind = async () => {
-  if (!nfcForm.tagUid) {
-    ElMessage.warning('请输入NFC Tag UID')
-    return
-  }
-  nfcBindLoading.value = true
-  try {
-    // TODO: 先根据tagUid查找NFC Tag，然后绑定
-    ElMessage.success('绑定成功')
-    nfcDialogVisible.value = false
-  } catch (error) {
-    console.error('Bind NFC error:', error)
-  } finally {
-    nfcBindLoading.value = false
-  }
-}
-
 const handleSubmit = async () => {
   if (!formRef.value) return
-  
   await formRef.value.validate(async (valid) => {
     if (valid) {
       submitLoading.value = true
       try {
-        if (form.id) {
-          await updatePet(form.id, form)
+        if (editingPetId.value) {
+          await updatePet(editingPetId.value, form)
           ElMessage.success('更新成功')
         } else {
-          await createPet(form)
-          ElMessage.success('创建成功')
+          await addPet(form)
+          ElMessage.success('添加成功')
         }
         dialogVisible.value = false
         fetchData()
       } catch (error) {
-        console.error('Submit pet error:', error)
+        // 错误已由拦截器处理
       } finally {
         submitLoading.value = false
       }
@@ -239,33 +270,27 @@ const handleDialogClose = () => {
 }
 
 const resetForm = () => {
+  editingPetId.value = undefined
   Object.assign(form, {
-    id: undefined,
-    ownerId: authStore.user?.id || 0,
     name: '',
-    species: '',
-    gender: 'UNKNOWN',
-    birthday: '',
+    speciesCode: '',
+    breedCode: '',
+    genderCode: '',
+    birthDate: '',
     weight: 0,
     color: '',
     description: ''
   })
+  breedList.value = []
 }
 
 onMounted(() => {
+  loadBaseData()
   fetchData()
 })
 </script>
 
 <style scoped>
-.page-container {
-  height: 100%;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
+.page-container { height: 100%; }
+.card-header { display: flex; justify-content: space-between; align-items: center; }
 </style>
-

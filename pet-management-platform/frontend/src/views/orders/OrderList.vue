@@ -336,7 +336,7 @@ const resetForm = () => {
 }
 
 onMounted(() => {
-  fetchData()
+  //fetchData()
 })
 </script>
 

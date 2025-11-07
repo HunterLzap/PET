@@ -4,54 +4,76 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+/**
+ * 宠物实体类
+ */
 @Entity
 @Table(name = "pets")
 public class Pet {
+    
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotNull
-    @Column(name = "owner_id")
-    private Long ownerId; // Foreign key to User (Pet Owner)
+    @NotNull(message = "宠物主人不能为空")
+    @Column(name = "owner_id", nullable = false)
+    private Long ownerId;
 
-    @NotBlank
+    @NotBlank(message = "宠物名称不能为空")
     @Size(max = 50)
+    @Column(name = "name", nullable = false, length = 50)
     private String name;
 
-    @NotBlank
+    @NotBlank(message = "宠物种类不能为空")
     @Size(max = 50)
-    private String species; // e.g., Cat, Dog
+    @Column(name = "species_code", nullable = false, length = 50)
+    private String speciesCode;
+    
+    @Column(name = "species_name", length = 50)
+    private String speciesName;
 
-    @Column(name = "breed_id")
-    private Long breedId; // Foreign key to BaseData (Pet Breed)
+    @NotBlank(message = "宠物品种不能为空")
+    @Size(max = 50)
+    @Column(name = "breed_code", nullable = false, length = 50)
+    private String breedCode;
+    
+    @Column(name = "breed_name", length = 100)
+    private String breedName;
 
-    @Enumerated(EnumType.STRING)
-    @Column(length = 10)
-    private Gender gender;
+    @NotBlank(message = "宠物性别不能为空")
+    @Size(max = 20)
+    @Column(name = "gender_code", nullable = false, length = 20)
+    private String genderCode;
+    
+    @Column(name = "gender_name", length = 20)
+    private String genderName;
 
+    @Column(name = "birthday")
     private LocalDate birthday;
 
-    @Column(precision = 5, scale = 2)
+    @Column(name = "weight", precision = 5, scale = 2)
     private BigDecimal weight;
 
     @Size(max = 50)
+    @Column(name = "color", length = 50)
     private String color;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
     @Size(max = 255)
+    @Column(name = "avatar_url", length = 255)
     private String avatarUrl;
 
-    @Column(nullable = false, updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(nullable = false)
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
     @PrePersist
@@ -65,23 +87,13 @@ public class Pet {
         updatedAt = LocalDateTime.now();
     }
 
+    // ========== 构造函数 ==========
+    
     public Pet() {
     }
 
-    public Pet(Long ownerId, String name, String species, Long breedId, Gender gender, LocalDate birthday, BigDecimal weight, String color, String description, String avatarUrl) {
-        this.ownerId = ownerId;
-        this.name = name;
-        this.species = species;
-        this.breedId = breedId;
-        this.gender = gender;
-        this.birthday = birthday;
-        this.weight = weight;
-        this.color = color;
-        this.description = description;
-        this.avatarUrl = avatarUrl;
-    }
-
-    // Getters and Setters
+    // ========== Getter & Setter ==========
+    
     public Long getId() {
         return id;
     }
@@ -106,28 +118,52 @@ public class Pet {
         this.name = name;
     }
 
-    public String getSpecies() {
-        return species;
+    public String getSpeciesCode() {
+        return speciesCode;
     }
 
-    public void setSpecies(String species) {
-        this.species = species;
+    public void setSpeciesCode(String speciesCode) {
+        this.speciesCode = speciesCode;
     }
 
-    public Long getBreedId() {
-        return breedId;
+    public String getSpeciesName() {
+        return speciesName;
     }
 
-    public void setBreedId(Long breedId) {
-        this.breedId = breedId;
+    public void setSpeciesName(String speciesName) {
+        this.speciesName = speciesName;
     }
 
-    public Gender getGender() {
-        return gender;
+    public String getBreedCode() {
+        return breedCode;
     }
 
-    public void setGender(Gender gender) {
-        this.gender = gender;
+    public void setBreedCode(String breedCode) {
+        this.breedCode = breedCode;
+    }
+
+    public String getBreedName() {
+        return breedName;
+    }
+
+    public void setBreedName(String breedName) {
+        this.breedName = breedName;
+    }
+
+    public String getGenderCode() {
+        return genderCode;
+    }
+
+    public void setGenderCode(String genderCode) {
+        this.genderCode = genderCode;
+    }
+
+    public String getGenderName() {
+        return genderName;
+    }
+
+    public void setGenderName(String genderName) {
+        this.genderName = genderName;
     }
 
     public LocalDate getBirthday() {
@@ -186,4 +222,3 @@ public class Pet {
         this.updatedAt = updatedAt;
     }
 }
-

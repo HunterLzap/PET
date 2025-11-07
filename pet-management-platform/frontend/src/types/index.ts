@@ -1,46 +1,44 @@
-export interface User {
-  id: number
-  username: string
-  email: string
-  roles: string[]
-}
-
-export interface Role {
-  id: number
-  name: string
-  description: string
-  permissions: {
-    [menuKey: string]: {
-      canView: boolean
-      canCreate: boolean
-      canUpdate: boolean
-      canDelete: boolean
-    }
-  }
-}
-
+// 登录请求
 export interface LoginRequest {
   username: string
   password: string
 }
 
+// 登录响应
 export interface LoginResponse {
-  accessToken: string
-  tokenType: string
   id: number
   username: string
   email: string
   roles: string[]
+  accessToken: string
+  tokenType: string
 }
 
+// 字典值
+export interface DictValue {
+  id: number
+  dictCode: string
+  valueCode: string
+  valueName: string
+  valueOrder: number
+  extraData?: string
+  colorTag?: string
+  icon?: string
+  status: number
+}
+
+// 宠物信息
 export interface Pet {
   id?: number
-  ownerId: number
   name: string
-  species: string
-  breedId?: number
-  gender: 'MALE' | 'FEMALE' | 'UNKNOWN'
-  birthday?: string
+  speciesCode: string
+  speciesName?: string
+  breedCode: string
+  breedName?: string
+  genderCode: string
+  genderName?: string
+  birthDate?: string
+  ageInMonths?: number
   weight?: number
   color?: string
   description?: string
@@ -49,62 +47,15 @@ export interface Pet {
   updatedAt?: string
 }
 
-export interface NfcTag {
-  id?: number
-  tagUid: string
-  petId?: number
-  protocolType: string
-  status: 'ACTIVE' | 'INACTIVE' | 'LOST' | 'BOUND' | 'UNBOUND'
-  activatedAt?: string
-  createdAt?: string
-  updatedAt?: string
-}
-
-export interface Service {
-  id?: number
-  businessId: number
+// 添加宠物请求
+export interface AddPetRequest {
   name: string
-  type: string
-  price: number
+  speciesCode: string
+  breedCode: string
+  genderCode: string
+  birthDate?: string
+  weight?: number
+  color?: string
   description?: string
-  durationMinutes: number
-  createdAt?: string
-  updatedAt?: string
+  avatarUrl?: string
 }
-
-export interface Order {
-  id?: number
-  userId: number
-  businessId: number
-  serviceId: number
-  petId?: number
-  totalAmount: number
-  status: 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED'
-  paymentStatus: 'PENDING' | 'PAID' | 'REFUNDED'
-  appointmentTime?: string
-  remarks?: string
-  createdAt?: string
-  updatedAt?: string
-}
-
-export interface BaseData {
-  id?: number
-  type: string
-  value: string
-  description?: string
-  createdAt?: string
-  updatedAt?: string
-}
-
-export interface HealthRecord {
-  id?: number
-  petId: number
-  recordDate: string
-  recordType: string
-  description?: string
-  notes?: string
-  attachmentUrl?: string
-  createdAt?: string
-  updatedAt?: string
-}
-
