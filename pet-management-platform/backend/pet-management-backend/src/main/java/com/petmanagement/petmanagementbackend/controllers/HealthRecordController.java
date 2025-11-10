@@ -29,9 +29,9 @@ public class HealthRecordController {
     @Autowired
     PetRepository petRepository;
 
-    // 获取宠物的所有健康记录 (宠物主人只能获取自己的宠物的记录，管理员可以获取所有)
+    // 获取宠物的所有健康记录
     @GetMapping("/pet/{petId}")
-    @PreAuthorize("hasRole(\'PET_OWNER\') or hasRole(\'BUSINESS\') or hasRole(\'ADMIN\')")
+    @PreAuthorize("hasRole('USER') or hasRole('MERCHANT_HOSPITAL') or hasRole('MERCHANT_HOUSE') or hasRole('MERCHANT_GOODS') or hasRole('ADMIN')")
     public ResponseEntity<List<HealthRecord>> getHealthRecordsByPetId(@PathVariable("petId") Long petId) {
         try {
             Optional<Pet> petData = petRepository.findById(petId);
@@ -44,7 +44,7 @@ public class HealthRecordController {
             UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
             // 宠物主人只能查看自己宠物的健康记录
-            if (authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_PET_OWNER"))) {
+            if (authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_USER"))) {
                 if (!pet.getOwnerId().equals(userDetails.getId())) {
                     return new ResponseEntity<>(HttpStatus.FORBIDDEN);
                 }
@@ -57,9 +57,9 @@ public class HealthRecordController {
         }
     }
 
-    // 根据ID获取健康记录 (宠物主人只能获取自己的宠物的记录，管理员可以获取所有)
+    // 根据ID获取健康记录
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole(\'PET_OWNER\') or hasRole(\'BUSINESS\') or hasRole(\'ADMIN\')")
+    @PreAuthorize("hasRole('USER') or hasRole('MERCHANT_HOSPITAL') or hasRole('MERCHANT_HOUSE') or hasRole('MERCHANT_GOODS') or hasRole('ADMIN')")
     public ResponseEntity<HealthRecord> getHealthRecordById(@PathVariable("id") Long id) {
         Optional<HealthRecord> healthRecordData = healthRecordRepository.findById(id);
 
@@ -75,7 +75,7 @@ public class HealthRecordController {
             UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
             // 宠物主人只能查看自己宠物的健康记录
-            if (authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_PET_OWNER"))) {
+            if (authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_USER"))) {
                 if (!pet.getOwnerId().equals(userDetails.getId())) {
                     return new ResponseEntity<>(HttpStatus.FORBIDDEN);
                 }
@@ -86,9 +86,9 @@ public class HealthRecordController {
         }
     }
 
-    // 创建健康记录 (宠物主人只能为自己的宠物创建，管理员可以为任何宠物创建)
+    // 创建健康记录
     @PostMapping
-    @PreAuthorize("hasRole(\'PET_OWNER\') or hasRole(\'BUSINESS\') or hasRole(\'ADMIN\')")
+    @PreAuthorize("hasRole('USER') or hasRole('MERCHANT_HOSPITAL') or hasRole('MERCHANT_HOUSE') or hasRole('MERCHANT_GOODS') or hasRole('ADMIN')")
     public ResponseEntity<?> createHealthRecord(@Valid @RequestBody HealthRecord healthRecord) {
         try {
             Optional<Pet> petData = petRepository.findById(healthRecord.getPetId());
@@ -101,7 +101,7 @@ public class HealthRecordController {
             UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
             // 宠物主人只能为自己的宠物创建健康记录
-            if (authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_PET_OWNER"))) {
+            if (authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_USER"))) {
                 if (!pet.getOwnerId().equals(userDetails.getId())) {
                     return new ResponseEntity<>(HttpStatus.FORBIDDEN);
                 }
@@ -121,9 +121,9 @@ public class HealthRecordController {
         }
     }
 
-    // 更新健康记录 (宠物主人只能更新自己的宠物的记录，管理员可以更新所有)
+    // 更新健康记录
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole(\'PET_OWNER\') or hasRole(\'BUSINESS\') or hasRole(\'ADMIN\')")
+    @PreAuthorize("hasRole('USER') or hasRole('MERCHANT_HOSPITAL') or hasRole('MERCHANT_HOUSE') or hasRole('MERCHANT_GOODS') or hasRole('ADMIN')")
     public ResponseEntity<HealthRecord> updateHealthRecord(@PathVariable("id") Long id, @Valid @RequestBody HealthRecord healthRecord) {
         Optional<HealthRecord> healthRecordData = healthRecordRepository.findById(id);
 
@@ -139,7 +139,7 @@ public class HealthRecordController {
             UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
             // 宠物主人只能更新自己宠物的健康记录
-            if (authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_PET_OWNER"))) {
+            if (authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_USER"))) {
                 if (!pet.getOwnerId().equals(userDetails.getId())) {
                     return new ResponseEntity<>(HttpStatus.FORBIDDEN);
                 }
@@ -156,9 +156,9 @@ public class HealthRecordController {
         }
     }
 
-    // 删除健康记录 (宠物主人只能删除自己的宠物的记录，管理员可以删除所有)
+    // 删除健康记录
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole(\'PET_OWNER\') or hasRole(\'BUSINESS\') or hasRole(\'ADMIN\')")
+    @PreAuthorize("hasRole('USER') or hasRole('MERCHANT_HOSPITAL') or hasRole('MERCHANT_HOUSE') or hasRole('MERCHANT_GOODS') or hasRole('ADMIN')")
     public ResponseEntity<HttpStatus> deleteHealthRecord(@PathVariable("id") Long id) {
         try {
             Optional<HealthRecord> healthRecordData = healthRecordRepository.findById(id);
@@ -174,7 +174,7 @@ public class HealthRecordController {
                 UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
                 // 宠物主人只能删除自己宠物的健康记录
-                if (authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_PET_OWNER"))) {
+                if (authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_USER"))) {
                     if (!pet.getOwnerId().equals(userDetails.getId())) {
                         return new ResponseEntity<>(HttpStatus.FORBIDDEN);
                     }
@@ -189,4 +189,3 @@ public class HealthRecordController {
         }
     }
 }
-

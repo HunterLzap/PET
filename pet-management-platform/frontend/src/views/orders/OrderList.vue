@@ -4,7 +4,8 @@
       <template #header>
         <div class="card-header">
           <span>订单管理</span>
-          <div class="header-actions">
+          <!-- ✅ 管理员不显示新增按钮 -->
+          <div class="header-actions" v-if="!isAdmin">
             <el-button @click="handleScanNfc">
               <el-icon><Postcard /></el-icon>
               NFC扫码
@@ -46,7 +47,7 @@
         <el-table-column prop="appointmentTime" label="预约时间" width="180" />
         <el-table-column prop="remarks" label="备注" show-overflow-tooltip />
         <el-table-column prop="createdAt" label="创建时间" width="180" />
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="200" fixed="right" v-if="!isAdmin">
           <template #default="{ row }">
             <el-button size="small" @click="handleEdit(row)">编辑</el-button>
             <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
@@ -63,6 +64,22 @@
       @close="handleDialogClose"
     >
       <el-form :model="form" :rules="rules" ref="formRef" label-width="120px">
+        <!-- ✅ 商家需要先选择客户 -->
+        <el-form-item label="选择客户" prop="customerId" v-if="isMerchant">
+          <el-select 
+            v-model="form.customerId" 
+            placeholder="请选择客户" 
+            filterable
+            @change="handleCustomerChange"
+          >
+            <el-option
+              v-for="customer in customers"
+              :key="customer.id"
+              :label="`${customer.name} (${customer.phone})`"
+              :value="customer.id"
+            />
+          </el-select>
+        </el-form-item>
         <el-form-item label="选择服务" prop="serviceId">
           <el-select v-model="form.serviceId" placeholder="请选择服务" filterable>
             <el-option
@@ -74,11 +91,16 @@
           </el-select>
         </el-form-item>
         <el-form-item label="选择宠物" prop="petId">
-          <el-select v-model="form.petId" placeholder="请选择宠物" filterable>
+          <el-select 
+            v-model="form.petId" 
+            placeholder="请选择宠物" 
+            filterable
+            :disabled="isMerchant && !form.customerId"
+          >
             <el-option
-              v-for="pet in pets"
+              v-for="pet in availablePets"
               :key="pet.id"
-              :label="`${pet.name} (${pet.species})`"
+              :label="`${pet.name} (${pet.speciesName})`"
               :value="pet.id"
             />
           </el-select>
@@ -158,13 +180,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { getOrders, createOrder, updateOrder, deleteOrder, scanNfcForOrder } from '@/api/order'
 import { getServices } from '@/api/service'
 import { getPets } from '@/api/pet'
-import type { Order, Service, Pet } from '@/types'
+import { getCustomers, getCustomerPets } from '@/api/customer'
+import type { Order, Service, Pet, Customer } from '@/types'
 import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
@@ -180,10 +203,13 @@ const nfcTagUid = ref('')
 const scannedPet = ref<Pet | null>(null)
 const services = ref<Service[]>([])
 const pets = ref<Pet[]>([])
+const customers = ref<Customer[]>([])
+const customerPets = ref<Pet[]>([])
 
 const form = reactive<Order>({
   userId: authStore.user?.id || 0,
   businessId: authStore.user?.id || 0,
+  customerId: undefined,
   serviceId: 0,
   petId: undefined,
   totalAmount: 0,
@@ -198,6 +224,29 @@ const rules = reactive<FormRules>({
   totalAmount: [{ required: true, message: '请输入总金额', trigger: 'blur' }],
   status: [{ required: true, message: '请选择订单状态', trigger: 'change' }],
   paymentStatus: [{ required: true, message: '请选择支付状态', trigger: 'change' }]
+})
+
+// ✅ 判断是否是管理员
+const isAdmin = computed(() => {
+  return authStore.user?.roles?.includes('ROLE_ADMIN') || false
+})
+
+// ✅ 判断是否是商家
+const isMerchant = computed(() => {
+  const roles = authStore.user?.roles || []
+  return roles.some(role => 
+    role === 'ROLE_MERCHANT_HOSPITAL' ||
+    role === 'ROLE_MERCHANT_HOUSE' ||
+    role === 'ROLE_MERCHANT_GOODS'
+  )
+})
+
+// ✅ 可选的宠物列表（根据选择的客户动态变化）
+const availablePets = computed(() => {
+  if (isMerchant.value && form.customerId) {
+    return customerPets.value
+  }
+  return pets.value
 })
 
 const fetchData = async () => {
@@ -227,11 +276,41 @@ const fetchPets = async () => {
   }
 }
 
+const fetchCustomers = async () => {
+  try {
+    customers.value = await getCustomers()
+  } catch (error) {
+    console.error('Fetch customers error:', error)
+  }
+}
+
+// ✅ 客户选择变化时，加载该客户的宠物
+const handleCustomerChange = async () => {
+  form.petId = undefined
+  customerPets.value = []
+  
+  if (!form.customerId) return
+  
+  try {
+    customerPets.value = await getCustomerPets(form.customerId)
+  } catch (error) {
+    console.error('Fetch customer pets error:', error)
+  }
+}
+
 const handleAdd = async () => {
   dialogTitle.value = '新增订单'
   resetForm()
   await fetchServices()
-  await fetchPets()
+  
+  if (isMerchant.value) {
+    // 商家：加载客户列表
+    await fetchCustomers()
+  } else {
+    // 用户：加载自己的宠物
+    await fetchPets()
+  }
+  
   dialogVisible.value = true
 }
 
@@ -273,7 +352,7 @@ const handleNfcScan = async () => {
   nfcScanLoading.value = true
   try {
     const result = await scanNfcForOrder(nfcTagUid.value)
-    scannedPet.value = result as any // TODO: 根据实际返回类型调整
+    scannedPet.value = result as any
     ElMessage.success('扫描成功')
   } catch (error) {
     console.error('Scan NFC error:', error)
@@ -308,6 +387,7 @@ const handleSubmit = async () => {
         fetchData()
       } catch (error) {
         console.error('Submit order error:', error)
+        ElMessage.error('操作失败')
       } finally {
         submitLoading.value = false
       }
@@ -325,6 +405,7 @@ const resetForm = () => {
     id: undefined,
     userId: authStore.user?.id || 0,
     businessId: authStore.user?.id || 0,
+    customerId: undefined,
     serviceId: 0,
     petId: undefined,
     totalAmount: 0,
@@ -333,10 +414,11 @@ const resetForm = () => {
     appointmentTime: '',
     remarks: ''
   })
+  customerPets.value = []
 }
 
 onMounted(() => {
-  //fetchData()
+  fetchData()
 })
 </script>
 
@@ -356,4 +438,3 @@ onMounted(() => {
   gap: 10px;
 }
 </style>
-

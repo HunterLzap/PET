@@ -18,8 +18,6 @@
             登录
           </el-button>
         </el-form-item>
-        
-        <!-- 注册链接 -->
         <el-form-item style="text-align: center; margin-bottom: 0;">
           <span style="color: #909399; font-size: 14px;">还没有账号？</span>
           <el-link type="primary" @click="router.push('/register')" style="margin-left: 5px;">
@@ -67,19 +65,42 @@ const handleLogin = async () => {
     if (valid) {
       loading.value = true
       try {
-        const response = await login(loginForm)
+        console.log('🔐 开始登录...')
+        const response: any = await login(loginForm)
+        
+        console.log('📦 登录响应:', response)
+        console.log('🎫 Token:', response.accessToken)
+        console.log('👤 用户ID:', response.id)
+        console.log('📧 邮箱:', response.email)
+        console.log('🏷️ 角色:', response.roles)
+        
+        if (!response.accessToken) {
+          console.error('❌ 响应中没有accessToken')
+          ElMessage.error('登录失败：未获取到token')
+          return
+        }
+        
+        const roles = Array.isArray(response.roles) ? response.roles : []
+        
         authStore.setToken(response.accessToken)
         authStore.setUser({
           id: response.id,
           username: response.username,
           email: response.email,
-          roles: response.roles
+          roles: roles
         })
+        
+        console.log('💾 Token已保存:', authStore.token.substring(0, 20) + '...')
+        console.log('💾 用户已保存:', authStore.user)
+        
         ElMessage.success('登录成功')
         router.push('/')
-      } catch (error) {
-        console.error('Login error:', error)
-        ElMessage.error('登录失败，请检查用户名和密码')
+      } catch (error: any) {
+        console.error('❌ 登录失败:', error)
+        console.error('错误响应:', error.response)
+        
+        const errorMsg = error.response?.data?.message || '登录失败，请检查用户名和密码'
+        ElMessage.error(errorMsg)
       } finally {
         loading.value = false
       }

@@ -34,4 +34,10 @@ public interface PetRepository extends JpaRepository<Pet, Long> {
      * @return 宠物数量
      */
     long countByOwnerId(Long ownerId);
+
+    // 根据客户ID查询
+    List<Pet> findByCustomerId(Long customerId);
+
+    //  根据客户ID和宠物ID查询
+    Optional<Pet> findByIdAndCustomerId(Long id, Long customerId);
 }

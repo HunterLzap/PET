@@ -36,8 +36,7 @@ public class BaseDictValue {
     private Integer valueOrder = 0;
     
     @Column(name = "extra_data", columnDefinition = "JSON")
-    private String extraData; // JSON 字符串，需要手动序列化/反序列化
-    
+    private String extraData;     
     @Column(name = "color_tag", length = 20)
     private String colorTag;
     

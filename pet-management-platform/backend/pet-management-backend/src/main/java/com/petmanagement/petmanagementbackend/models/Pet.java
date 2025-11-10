@@ -20,9 +20,11 @@ public class Pet {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotNull(message = "宠物主人不能为空")
-    @Column(name = "owner_id", nullable = false)
+    @Column(name = "owner_id")
     private Long ownerId;
+    
+    @Column(name = "customer_id")
+    private Long customerId;
 
     @NotBlank(message = "宠物名称不能为空")
     @Size(max = 50)
@@ -108,6 +110,14 @@ public class Pet {
 
     public void setOwnerId(Long ownerId) {
         this.ownerId = ownerId;
+    }
+
+    public Long getCustomerId() {
+        return customerId;
+    }
+
+    public void setCustomerId(Long customerId) {
+        this.customerId = customerId;
     }
 
     public String getName() {

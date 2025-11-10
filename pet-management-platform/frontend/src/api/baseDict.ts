@@ -1,6 +1,6 @@
 import request from '@/utils/request'
 
-// 字典值接口
+// 字典值类型
 export interface DictValue {
   id: number
   dictCode: string
@@ -13,26 +13,52 @@ export interface DictValue {
   status: number
 }
 
-// 获取字典值列表
-export function getDictValues(dictCode: string) {
+// 获取字典类型列表
+export function getDictTypes() {
+  return request({
+    url: '/api/base-dict/types',
+    method: 'get'
+  })
+}
+
+// 获取字典值列表（根据字典类型代码）
+export function getDictValuesByType(dictCode: string) {
   return request({
     url: `/api/base-dict/values/${dictCode}`,
     method: 'get'
-  })
+  }) as Promise<DictValue[]>
 }
 
-// 根据父级查询子级（级联）
-export function getDictValuesBySpecies(dictCode: string, speciesCode: string) {
+// ✅ 根据种类获取品种列表（用于宠物品种联动）
+export function getDictValues(dictCode: string, speciesCode: string) {
   return request({
     url: `/api/base-dict/values/${dictCode}/by-species/${speciesCode}`,
     method: 'get'
+  }) as Promise<DictValue[]>
+}
+
+// 创建字典值
+export function createDictValue(data: any) {
+  return request({
+    url: '/api/base-dict/values',
+    method: 'post',
+    data
   })
 }
 
-// 获取所有常用基础数据
-export function getAllCommonDict() {
+// 更新字典值
+export function updateDictValue(id: number, data: any) {
   return request({
-    url: '/api/base-dict/all-common',
-    method: 'get'
+    url: `/api/base-dict/values/${id}`,
+    method: 'put',
+    data
+  })
+}
+
+// 删除字典值
+export function deleteDictValue(id: number) {
+  return request({
+    url: `/api/base-dict/values/${id}`,
+    method: 'delete'
   })
 }

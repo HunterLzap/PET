@@ -1,5 +1,7 @@
-import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
+import axios from 'axios'
+import type { AxiosInstance, AxiosError, InternalAxiosRequestConfig, AxiosResponse } from 'axios'
 import { ElMessage } from 'element-plus'
+import router from '@/router'
 
 const service: AxiosInstance = axios.create({
   baseURL: 'http://localhost:8081',
@@ -7,37 +9,54 @@ const service: AxiosInstance = axios.create({
   headers: { 'Content-Type': 'application/json' }
 })
 
-// 请求拦截器：自动添加 Token
+// 请求拦截器
 service.interceptors.request.use(
-  (config: AxiosRequestConfig) => {
+  (config: InternalAxiosRequestConfig) => {
     const token = localStorage.getItem('token')
+    console.log('📤 请求拦截 -', config.url, '| Token:', !!token)
+    
     if (token) {
       config.headers = config.headers || {}
-      ;(config.headers as any).Authorization = `Bearer ${token}`
+      config.headers.Authorization = `Bearer ${token}`
     }
     return config
   },
-  (error: AxiosError) => Promise.reject(error)
+  (error: AxiosError) => {
+    console.error('❌ 请求错误:', error)
+    return Promise.reject(error)
+  }
 )
 
-// 响应拦截器：只在 401 时清空 Token 并跳转
+let isUnauthorizedMessageShown = false
+
+// 响应拦截器
 service.interceptors.response.use(
-  (response: AxiosResponse) => response.data,
+  (response: AxiosResponse) => {
+    console.log('✅ 响应成功 -', response.config.url, '| 状态:', response.status)
+    return response.data
+  },
   (error: AxiosError) => {
     const status = error.response?.status
+    console.error('❌ 响应错误 -', error.config?.url, '| 状态:', status)
     
-    // 只在 401（未授权）时，才认为是登录过期，并跳转到登录页
     if (status === 401) {
-      ElMessage.error('登录已过期，请重新登录')
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
-      window.location.href = '/login'
+      if (!isUnauthorizedMessageShown) {
+        isUnauthorizedMessageShown = true
+        ElMessage.error('登录已过期，请重新登录')
+        
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        
+        router.push('/login').then(() => {
+          setTimeout(() => {
+            isUnauthorizedMessageShown = false
+          }, 1000)
+        })
+      }
     } 
-    // 403（无权限）只提示，不跳转
     else if (status === 403) {
       ElMessage.warning('您没有权限访问该功能')
     } 
-    // 其他错误，显示后端返回的错误信息
     else {
       const errorMsg = (error.response?.data as any)?.message || '请求失败，请稍后重试'
       ElMessage.error(errorMsg)

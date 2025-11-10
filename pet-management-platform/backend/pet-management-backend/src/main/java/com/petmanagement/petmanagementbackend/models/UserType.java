@@ -13,7 +13,7 @@ public enum UserType {
     /**
      * 商家（宠物医院/宠物馆/用品商家）
      */
-    MERCHANT("商家"),
+    MERCHANT("商家"), 
     
     /**
      * 平台管理员

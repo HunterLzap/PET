@@ -32,19 +32,49 @@ const routes: Array<RouteRecordRaw> = [
         path: 'pets',
         name: 'Pets',
         component: () => import('@/views/pets/PetList.vue'),
-        meta: { title: '宠物管理', icon: 'PieChart' }
+        meta: { 
+          title: '宠物管理', 
+          icon: 'PieChart',
+          roles: ['ROLE_USER', 'ROLE_ADMIN']  // 只有用户和管理员
+        }
       },
       {
         path: 'health-records',
         name: 'HealthRecords',
         component: () => import('@/views/health/HealthRecordList.vue'),
-        meta: { title: '健康记录', icon: 'DocumentChecked' }
+        meta: { 
+          title: '健康记录', 
+          icon: 'DocumentChecked',
+          roles: ['ROLE_USER', 'ROLE_ADMIN']  // 只有用户和管理员
+        }
       },
       {
         path: 'orders',
         name: 'Orders',
         component: () => import('@/views/orders/OrderList.vue'),
         meta: { title: '我的订单', icon: 'Document' }
+      },
+      // ✅ 新增：客户管理（商家专用）
+      {
+        path: 'customers',
+        name: 'Customers',
+        component: () => import('@/views/customers/CustomerList.vue'),
+        meta: { 
+          title: '客户管理', 
+          icon: 'User',
+          roles: ['ROLE_MERCHANT_HOSPITAL', 'ROLE_MERCHANT_HOUSE', 'ROLE_MERCHANT_GOODS', 'ROLE_ADMIN']
+        }
+      },
+      // ✅ 新增：客户详情（不在菜单显示）
+      {
+        path: 'customers/:id',
+        name: 'CustomerDetail',
+        component: () => import('@/views/customers/CustomerDetail.vue'),
+        meta: { 
+          title: '客户详情',
+          hidden: true,  // 不在菜单显示
+          roles: ['ROLE_MERCHANT_HOSPITAL', 'ROLE_MERCHANT_HOUSE', 'ROLE_MERCHANT_GOODS', 'ROLE_ADMIN']
+        }
       },
       // 商家端菜单
       {
@@ -95,24 +125,53 @@ const router = createRouter({
   routes
 })
 
+// 路由守卫
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
   
+  console.log('🛡️ 路由守卫 | 目标:', to.path, '| 认证:', authStore.isAuthenticated)
+  
+  // 1. 检查是否需要认证
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+    console.log('⛔ 未登录，跳转登录页')
     next('/login')
-  } else if (to.path === '/login' && authStore.isAuthenticated) {
+    return
+  }
+  
+  // 2. 已登录用户访问登录页，跳转到首页
+  if (to.path === '/login' && authStore.isAuthenticated) {
+    console.log('✅ 已登录，跳转首页')
     next('/')
-  } else {
-    if (to.meta.roles && Array.isArray(to.meta.roles)) {
-      const userRoles = authStore.user?.roles || []
-      const hasPermission = to.meta.roles.some(role => userRoles.includes(role as string))
-      if (!hasPermission) {
+    return
+  }
+  
+  // 3. 检查角色权限
+  if (to.meta.roles && Array.isArray(to.meta.roles)) {
+    if (!authStore.user || !authStore.user.roles) {
+      console.warn('⚠️ 用户信息异常，跳转Dashboard')
+      if (to.path !== '/dashboard') {
         next('/dashboard')
         return
       }
+    } else {
+      const userRoles = authStore.user.roles
+      const requiredRoles = to.meta.roles as string[]
+      const hasPermission = requiredRoles.some(role => userRoles.includes(role))
+      
+      console.log('🔑 权限检查 | 需要:', requiredRoles, '| 拥有:', userRoles, '| 通过:', hasPermission)
+      
+      if (!hasPermission) {
+        console.warn('⛔ 无权限，跳转Dashboard')
+        if (to.path !== '/dashboard') {
+          next('/dashboard')
+          return
+        }
+      }
     }
-    next()
   }
+  
+  console.log('✅ 路由放行')
+  next()
 })
 
 export default router

@@ -1,5 +1,6 @@
 package com.petmanagement.petmanagementbackend.controllers;
-import com.petmanagement.petmanagementbackend.security.UserDetailsImpl;
+
+import com.petmanagement.petmanagementbackend.security.services.UserDetailsImpl;
 import org.springframework.security.core.context.SecurityContextHolder;
 import com.petmanagement.petmanagementbackend.models.NfcTag;
 import com.petmanagement.petmanagementbackend.models.NfcTagStatus;
@@ -105,7 +106,7 @@ public class NfcTagController {
 
     // 绑定NFC吊牌到宠物 (管理员或宠物主人)
     @PostMapping("/bind/{tagId}/{petId}")
-    @PreAuthorize("hasRole('PET_OWNER') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")  // ✅ 改为 USER
     public ResponseEntity<?> bindNfcTagToPet(@PathVariable("tagId") Long tagId, @PathVariable("petId") Long petId) {
         Optional<NfcTag> nfcTagData = nfcTagRepository.findById(tagId);
         Optional<Pet> petData = petRepository.findById(petId);
@@ -130,8 +131,10 @@ public class NfcTagController {
         }
 
         // 宠物主人只能绑定自己的宠物
-        if (SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_PET_OWNER"))) {
-            if (!pet.getOwnerId().equals(((UserDetailsImpl) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getId())) {
+        if (SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_USER"))) {  // ✅ 改为 ROLE_USER
+            if (!pet.getOwnerId().equals(((UserDetailsImpl) SecurityContextHolder.getContext()
+                    .getAuthentication().getPrincipal()).getId())) {
                 return new ResponseEntity<>(HttpStatus.FORBIDDEN);
             }
         }
@@ -146,7 +149,7 @@ public class NfcTagController {
 
     // 解绑NFC吊牌 (管理员或宠物主人)
     @PostMapping("/unbind/{tagId}")
-    @PreAuthorize("hasRole('PET_OWNER') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")  // ✅ 改为 USER
     public ResponseEntity<?> unbindNfcTagFromPet(@PathVariable("tagId") Long tagId) {
         Optional<NfcTag> nfcTagData = nfcTagRepository.findById(tagId);
 
@@ -161,9 +164,11 @@ public class NfcTagController {
         }
 
         // 宠物主人只能解绑自己宠物上的NFC吊牌
-        if (SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_PET_OWNER"))) {
+        if (SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_USER"))) {  // ✅ 改为 ROLE_USER
             Optional<Pet> petData = petRepository.findById(nfcTag.getPetId());
-            if (petData.isEmpty() || !petData.get().getOwnerId().equals(((UserDetailsImpl) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getId())) {
+            if (petData.isEmpty() || !petData.get().getOwnerId().equals(
+                    ((UserDetailsImpl) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getId())) {
                 return new ResponseEntity<>(HttpStatus.FORBIDDEN);
             }
         }
@@ -178,7 +183,7 @@ public class NfcTagController {
 
     // 根据NFC Tag UID获取宠物信息 (所有已认证用户)
     @GetMapping("/scan/{tagUid}")
-    @PreAuthorize("hasRole('PET_OWNER') or hasRole('BUSINESS') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('USER') or hasRole('MERCHANT_HOSPITAL') or hasRole('MERCHANT_HOUSE') or hasRole('MERCHANT_GOODS') or hasRole('ADMIN')")  // ✅ 改为实际角色
     public ResponseEntity<?> getPetByNfcTagUid(@PathVariable("tagUid") String tagUid) {
         Optional<NfcTag> nfcTagData = nfcTagRepository.findByTagUid(tagUid);
 
@@ -196,4 +201,3 @@ public class NfcTagController {
         return new ResponseEntity<>(petData.get(), HttpStatus.OK);
     }
 }
-

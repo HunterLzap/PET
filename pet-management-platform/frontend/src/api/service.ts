@@ -3,21 +3,21 @@ import type { Service } from '@/types'
 
 export function getServices() {
   return request({
-    url: '/services',
+    url: '/api/services',  // ✅ 加上 /api
     method: 'get'
   }) as Promise<Service[]>
 }
 
 export function getServiceById(id: number) {
   return request({
-    url: `/services/${id}`,
+    url: `/api/services/${id}`,  // ✅ 加上 /api
     method: 'get'
   }) as Promise<Service>
 }
 
 export function createService(data: Service) {
   return request({
-    url: '/services',
+    url: '/api/services',  // ✅ 加上 /api
     method: 'post',
     data
   }) as Promise<Service>
@@ -25,7 +25,7 @@ export function createService(data: Service) {
 
 export function updateService(id: number, data: Service) {
   return request({
-    url: `/services/${id}`,
+    url: `/api/services/${id}`,  // ✅ 加上 /api
     method: 'put',
     data
   }) as Promise<Service>
@@ -33,8 +33,7 @@ export function updateService(id: number, data: Service) {
 
 export function deleteService(id: number) {
   return request({
-    url: `/services/${id}`,
+    url: `/api/services/${id}`,  // ✅ 加上 /api
     method: 'delete'
   })
 }
-

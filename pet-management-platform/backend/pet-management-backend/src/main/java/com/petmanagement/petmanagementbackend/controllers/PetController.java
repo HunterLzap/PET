@@ -15,10 +15,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-/**
- * 宠物管理 API
- * 用户端接口，需要登录
- */
 @RestController
 @RequestMapping("/api/user/pets")
 @RequiredArgsConstructor
@@ -28,30 +24,38 @@ public class PetController {
     private final PetService petService;
     
     /**
-     * 获取我的宠物列表
-     * GET /api/user/pets
-     * 
-     * @param authentication 当前登录用户
-     * @return 宠物列表
+     * 获取宠物列表
+     * - 用户：获取自己的宠物
+     * - 商家：获取所有宠物（用于创建订单时选择）
      */
     @GetMapping
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('USER') or hasRole('MERCHANT_HOSPITAL') or hasRole('MERCHANT_HOUSE') or hasRole('MERCHANT_GOODS') or hasRole('ADMIN')")
     public ResponseEntity<List<PetResponse>> getMyPets(Authentication authentication) {
         Long userId = getCurrentUserId(authentication);
-        List<PetResponse> pets = petService.getMyPets(userId);
+        
+        boolean isMerchant = authentication.getAuthorities().stream().anyMatch(a -> 
+            a.getAuthority().equals("ROLE_MERCHANT_HOSPITAL") ||
+            a.getAuthority().equals("ROLE_MERCHANT_HOUSE") ||
+            a.getAuthority().equals("ROLE_MERCHANT_GOODS")
+        );
+        
+        List<PetResponse> pets;
+        if (isMerchant) {
+            // 商家获取自己客户的所有宠物
+            pets = petService.getMerchantCustomerPets(userId);
+        } else {
+            // 普通用户获取自己的宠物
+            pets = petService.getMyPets(userId);
+        }
+        
         return ResponseEntity.ok(pets);
     }
     
     /**
      * 获取宠物详情
-     * GET /api/user/pets/{petId}
-     * 
-     * @param petId 宠物ID
-     * @param authentication 当前登录用户
-     * @return 宠物详情
      */
     @GetMapping("/{petId}")
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('USER') or hasRole('MERCHANT_HOSPITAL') or hasRole('MERCHANT_HOUSE') or hasRole('MERCHANT_GOODS') or hasRole('ADMIN')")
     public ResponseEntity<PetResponse> getPetDetail(
             @PathVariable Long petId,
             Authentication authentication) {
@@ -63,34 +67,45 @@ public class PetController {
     
     /**
      * 添加宠物
-     * POST /api/user/pets
-     * 
-     * @param request 添加宠物请求
-     * @param authentication 当前登录用户
-     * @return 新添加的宠物信息
+     * - 用户：为自己添加宠物
+     * - 商家：为客户添加宠物（需要传customerId）
      */
     @PostMapping
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
-    public ResponseEntity<PetResponse> addPet(
+    @PreAuthorize("hasRole('USER') or hasRole('MERCHANT_HOSPITAL') or hasRole('MERCHANT_HOUSE') or hasRole('MERCHANT_GOODS') or hasRole('ADMIN')")
+    public ResponseEntity<?> addPet(
             @Valid @RequestBody AddPetRequest request,
             Authentication authentication) {
         
-        Long userId = getCurrentUserId(authentication);
-        PetResponse pet = petService.addPet(userId, request);
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        
+        boolean isMerchant = authentication.getAuthorities().stream().anyMatch(a -> 
+            a.getAuthority().equals("ROLE_MERCHANT_HOSPITAL") ||
+            a.getAuthority().equals("ROLE_MERCHANT_HOUSE") ||
+            a.getAuthority().equals("ROLE_MERCHANT_GOODS")
+        );
+        
+        PetResponse pet;
+        
+        if (isMerchant) {
+            // 商家为客户添加宠物
+            if (request.getCustomerId() == null) {
+                return ResponseEntity.badRequest()
+                    .body(new MessageResponse("商家添加宠物时必须指定客户ID"));
+            }
+            pet = petService.addPetForCustomer(request.getCustomerId(), request);
+        } else {
+            // 用户为自己添加宠物
+            pet = petService.addPet(userDetails.getId(), request);
+        }
+        
         return ResponseEntity.ok(pet);
     }
     
     /**
      * 更新宠物信息
-     * PUT /api/user/pets/{petId}
-     * 
-     * @param petId 宠物ID
-     * @param request 更新请求
-     * @param authentication 当前登录用户
-     * @return 更新后的宠物信息
      */
     @PutMapping("/{petId}")
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('USER') or hasRole('MERCHANT_HOSPITAL') or hasRole('MERCHANT_HOUSE') or hasRole('MERCHANT_GOODS') or hasRole('ADMIN')")
     public ResponseEntity<PetResponse> updatePet(
             @PathVariable Long petId,
             @Valid @RequestBody UpdatePetRequest request,
@@ -103,14 +118,9 @@ public class PetController {
     
     /**
      * 删除宠物
-     * DELETE /api/user/pets/{petId}
-     * 
-     * @param petId 宠物ID
-     * @param authentication 当前登录用户
-     * @return 删除成功消息
      */
     @DeleteMapping("/{petId}")
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('USER') or hasRole('MERCHANT_HOSPITAL') or hasRole('MERCHANT_HOUSE') or hasRole('MERCHANT_GOODS') or hasRole('ADMIN')")
     public ResponseEntity<MessageResponse> deletePet(
             @PathVariable Long petId,
             Authentication authentication) {
@@ -121,8 +131,15 @@ public class PetController {
     }
     
     /**
-     * 获取当前登录用户ID
+     * ✅ 新增：获取指定客户的宠物列表（商家使用）
      */
+    @GetMapping("/customer/{customerId}")
+    @PreAuthorize("hasRole('MERCHANT_HOSPITAL') or hasRole('MERCHANT_HOUSE') or hasRole('MERCHANT_GOODS') or hasRole('ADMIN')")
+    public ResponseEntity<List<PetResponse>> getCustomerPets(@PathVariable Long customerId) {
+        List<PetResponse> pets = petService.getCustomerPets(customerId);
+        return ResponseEntity.ok(pets);
+    }
+    
     private Long getCurrentUserId(Authentication authentication) {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
         return userDetails.getId();
